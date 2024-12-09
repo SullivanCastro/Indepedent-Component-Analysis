@@ -1,0 +1,19 @@
+# dataset
+nps: 1000
+ns: 40
+dl: 5
+dd: 5
+nl: 3
+s: 1
+p: 'gauss'
+act: 'xtanh'
+uncentered: false
+noisy: false
+staircase: false
+
+# model
+tcl: true
+
+# learning
+steps: 70000
+batch_size: 256
