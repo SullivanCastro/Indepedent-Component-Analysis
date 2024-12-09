@@ -1,0 +1,10 @@
+.idea/
+__pycache__/
+*.swp
+.ipynb_checkpoints/
+data/
+log/
+runs/
+*.json
+ckpt/
+slurm_log/
