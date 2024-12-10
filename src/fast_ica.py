@@ -5,7 +5,9 @@ from preprocessing import Preprocessing
 
 class Fast_ICA:
 
-    def __init__(self, n_components:int, max_iter: int = 200, tol: float = 1e-4) -> None:
+    def __init__(
+        self, n_components: int, max_iter: int = 200, tol: float = 1e-4
+    ) -> None:
         """
         Initialize the Fast_ICA object.
 
@@ -22,13 +24,12 @@ class Fast_ICA:
         -------
         None
         """
-        self._max_iter     = max_iter
-        self._tol          = tol
+        self._max_iter = max_iter
+        self._tol = tol
         self._n_components = n_components
-        self._g            = lambda X : X ** 3
-        self._dg           = lambda X : 3 * X ** 2
+        self._g = lambda X: X**3
+        self._dg = lambda X: 3 * X**2
 
-    
     def _compute_new_weights(self, X: ArrayLike, w: ArrayLike) -> ArrayLike:
         """
         Compute the new weights for the Fast_ICA algorithm according to the update rule.
@@ -46,8 +47,8 @@ class Fast_ICA:
             New weights of shape (N, M).
         """
         # Compute each part of the update rule
-        Y      = (w.T @ X)
-        cov_g  = (X * self._g(Y)).mean(axis=1)
+        Y = w.T @ X
+        cov_g = (X * self._g(Y)).mean(axis=1)
         cov_dg = np.mean(self._dg(Y)) * w
 
         # Update weights
@@ -55,7 +56,6 @@ class Fast_ICA:
 
         # Return the new weights
         return w_new
-    
 
     def _orthogonalisation(self, w: ArrayLike, previous_w: ArrayLike) -> ArrayLike:
         """
@@ -74,11 +74,10 @@ class Fast_ICA:
             Orthogonalized weight vector of shape (N,).
         """
         w_normalized = w.copy()
-        w_normalized -= (previous_w.T @ (previous_w @ w))
+        w_normalized -= previous_w.T @ (previous_w @ w)
         w_normalized /= np.linalg.norm(w_normalized, ord=2)
 
         return w_normalized
-
 
     def fit(self, X: ArrayLike) -> None:
         """
@@ -88,45 +87,46 @@ class Fast_ICA:
         ----------
         X : ArrayLike
             Data matrix of shape (N, M).
-        
+
         Returns
         -------
-        None        
+        None
         """
         # Preprocessing of X
-        N, _   = X.shape
+        N, _ = X.shape
         X = Preprocessing.preprocessing(X)
 
         # Initialize random weights
-        self.weights  = np.random.random((self._n_components, N))
+        self.weights = np.random.random((self._n_components, N))
         for i in range(self._n_components):
-            self.weights[i]  = self._orthogonalisation(self.weights[i], self.weights[:i])
+            self.weights[i] = self._orthogonalisation(self.weights[i], self.weights[:i])
 
         # FastICA algorithm
         for p in range(self._n_components):
 
             # Initialize weights and old wieghts
-            w_p     = self.weights[p].copy()
+            w_p = self.weights[p].copy()
             w_p_old = np.zeros_like(w_p)
-            cpt     = 0
-            
+            cpt = 0
+
             # Check convergence
-            while cpt < self._max_iter and abs(np.inner(w_p, w_p_old)) < (1 - self._tol):
-                
+            while cpt < self._max_iter and abs(np.inner(w_p, w_p_old)) < (
+                1 - self._tol
+            ):
+
                 w_new = self._compute_new_weights(X, w_p)
 
                 # Orthogonalization
                 w_new = self._orthogonalisation(w_new, self.weights[:p])
 
                 # Convergence check
-                w_temp       = w_p.copy()
+                w_temp = w_p.copy()
                 w_p, w_p_old = w_new.copy(), w_temp.copy()
 
                 cpt += 1
 
             self.weights[p] = w_p
 
- 
     def transform(self, X):
         """
         Project the data matrix X into the independent components space.
@@ -135,7 +135,7 @@ class Fast_ICA:
         ----------
         X : ArrayLike
             Data matrix of shape (N, M).
-        
+
         Returns
         -------
         ArrayLike
@@ -146,8 +146,7 @@ class Fast_ICA:
 
         # Return the projection of X into the independent components space
         return self.weights @ X_whitened
-    
-    
+
     def fit_transform(self, X):
         """
         Apply the Fast_ICA algorithm to the data matrix X and return the projected data matrix into the independent components space.
@@ -156,18 +155,18 @@ class Fast_ICA:
         ----------
         X : ArrayLike
             Data matrix of shape (N, M).
-            
+
         Returns
         -------
         ArrayLike
             Data matrix projected into the independent components space of shape (N, M).
         """
-        # Fit the Fast_ICA model to the data matrix X 
+        # Fit the Fast_ICA model to the data matrix X
         self.fit(X)
 
         # Return the projection of X into the independent components space
         return self.transform(X)
-    
+
     @property
     def W(self):
         """
@@ -178,9 +177,9 @@ class Fast_ICA:
         ArrayLike
             Unmixing matrix of shape (N, N).
         """
-        if hasattr(self, 'weights'):
+        if hasattr(self, "weights"):
             return self.weights
-    
+
     @property
     def A(self):
         """
@@ -191,6 +190,5 @@ class Fast_ICA:
         ArrayLike
             Mixing matrix of shape (N, N).
         """
-        if hasattr(self, 'weights'):
+        if hasattr(self, "weights"):
             return np.linalg.pinv(self.weights)
-

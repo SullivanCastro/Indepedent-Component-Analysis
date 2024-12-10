@@ -9,8 +9,8 @@ import torch
 
 
 def make_dir(dir_name):
-    if dir_name[-1] != '/':
-        dir_name += '/'
+    if dir_name[-1] != "/":
+        dir_name += "/"
     if not os.path.exists(dir_name):
         os.makedirs(dir_name)
     return dir_name
@@ -18,7 +18,7 @@ def make_dir(dir_name):
 
 def make_file(file_name):
     if not os.path.exists(file_name):
-        open(file_name, 'a').close()
+        open(file_name, "a").close()
     return file_name
 
 
@@ -36,33 +36,47 @@ def from_log(args, argv, logpath):
     add_to_log = False
     if len(argv) > 2:
         add_to_log = True
-    for a in argv[1:]:  # start from 2 if the from-log value is to be overwritten by the one in the log
-        sp = a.split('=')
-        args_not_from_log.append(sp[0][2:].replace('-', '_'))
+    for a in argv[
+        1:
+    ]:  # start from 2 if the from-log value is to be overwritten by the one in the log
+        sp = a.split("=")
+        args_not_from_log.append(sp[0][2:].replace("-", "_"))
     file = open(logpath)
     for line in file:
         d = json.loads(line)
-        if d['id'] == i:
+        if d["id"] == i:
             break
     file.close()
     for a in args_not_from_log:
         d.pop(a)
-    del d['id'], d['train_perf'], d['test_perf']
+    del d["id"], d["train_perf"], d["test_perf"]
     new_d.update(d)
     return new_d, add_to_log
 
 
 def checkpoint(path, exp_id, seed, iteration, model, optimizer, loss, perf, full_perf):
-    sub_path = make_dir(path + str(exp_id) + '/')
-    weights_path = sub_path + str(exp_id) + '_seed_' + str(seed) + '_ckpt_' + str(iteration) + '.pth'
-    print('.. checkpoint at iteration {} ..'.format(iteration))
-    torch.save({'iteration': iteration,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'loss': loss,
-                'perf': perf,
-                'mcc_dataset': full_perf},
-                weights_path)
+    sub_path = make_dir(path + str(exp_id) + "/")
+    weights_path = (
+        sub_path
+        + str(exp_id)
+        + "_seed_"
+        + str(seed)
+        + "_ckpt_"
+        + str(iteration)
+        + ".pth"
+    )
+    print(".. checkpoint at iteration {} ..".format(iteration))
+    torch.save(
+        {
+            "iteration": iteration,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "loss": loss,
+            "perf": perf,
+            "mcc_dataset": full_perf,
+        },
+        weights_path,
+    )
 
 
 class RunningAverageMeter(object):
@@ -137,7 +151,9 @@ class Logger:
 
     def log(self):
         for key in self.keys():
-            self.log_dict[key].append(self.running_means[key].avg * 1.)  # make sure we save floats
+            self.log_dict[key].append(
+                self.running_means[key].avg * 1.0
+            )  # make sure we save floats
         self._reset_means()
 
     def get_last(self, key):
@@ -149,35 +165,35 @@ class Logger:
             if log_dir is None:
                 log_dir = self.log_dir
             exp_id = self._get_exp_id(log_dir)
-            path = log_dir + '{}.npz'.format(exp_id)
+            path = log_dir + "{}.npz".format(exp_id)
             for k, v in self.log_dict.items():
                 self.log_dict[k] = np.array(v)
             np.savez_compressed(path, **self.log_dict)
-            print('Log data saved to {}'.format(path))
+            print("Log data saved to {}".format(path))
 
         else:
             print("Can't save to npz: log path not specified")
 
-    def save_to_json(self, log_dir=None, method='last'):
+    def save_to_json(self, log_dir=None, method="last"):
 
         if (log_dir is not None) or (log_dir is None and self.log_dir is not None):
             if log_dir is None:
                 log_path = self.log_dir
             exp_id = self._get_exp_id(log_dir)
-            path = make_file(log_dir + 'log.json')
-            with open(path, 'a') as file:
-                log = {'id': exp_id}
+            path = make_file(log_dir + "log.json")
+            with open(path, "a") as file:
+                log = {"id": exp_id}
                 for k in self.keys():
-                    if method == 'last':
+                    if method == "last":
                         log.update({k: self.get_last(k)})
-                    elif method == 'full':
+                    elif method == "full":
                         log.update({k: self.log_dict[k]})
                     else:
-                        raise ValueError('Incorrect method {}'.format(method))
-                log.update({'metadata': self.metadata})
+                        raise ValueError("Incorrect method {}".format(method))
+                log.update({"metadata": self.metadata})
                 json.dump(log, file)
-                file.write('\n')
-            print('Log saved to {}'.format(path))
+                file.write("\n")
+            print("Log saved to {}".format(path))
         else:
             print("Can't save to json: log path not specified")
 
@@ -196,12 +212,12 @@ class Logger:
     @staticmethod
     def _get_exp_id(log_folder):
         log_folder = make_dir(log_folder)
-        helper_id_file = log_folder + '.expid'
+        helper_id_file = log_folder + ".expid"
         if not os.path.exists(helper_id_file):
-            with open(helper_id_file, 'w') as f:
-                f.writelines('0')
+            with open(helper_id_file, "w") as f:
+                f.writelines("0")
         # helper_id_file = make_file(helper_id_file)
-        with open(helper_id_file, 'r+') as file:
+        with open(helper_id_file, "r+") as file:
             st = time.time()
             while time.time() - st < 30:
                 try:
@@ -213,10 +229,12 @@ class Logger:
                     if e.errno != errno.EAGAIN:
                         raise
                     else:
-                        print('sleeping')
+                        print("sleeping")
                         time.sleep(0.1)
             else:
-                raise TimeoutError('Timeout on accessing log helper file {}'.format(helper_id_file))
+                raise TimeoutError(
+                    "Timeout on accessing log helper file {}".format(helper_id_file)
+                )
             prev_id = int(file.readline())
             curr_id = prev_id + 1
 
