@@ -41,7 +41,7 @@ class Preprocessing:
 
         # Compute the EVD decomposition and handle non positive eigenvalues
         eigenvalues, eigenvectors = np.linalg.eigh(E)
-        eigenvalues_cleaned       = np.maximum(eigenvalues, 1e-6)
+        eigenvalues_cleaned = np.maximum(eigenvalues, 1e-6)
 
         # Compute the whitened data matrix
         X_whitened = (
@@ -50,11 +50,13 @@ class Preprocessing:
 
         # Check if the whitening was successful
         if np.linalg.norm(np.cov(X_whitened) - np.eye(X.shape[0])) > 1e-3:
-            print(f"[WARNING] Whitening failed, norm of covariance matrix: {np.linalg.norm(np.cov(X_whitened))}")
+            print(
+                "[WARNING] Whitening failed, norm of covariance matrix:",
+                np.linalg.norm(np.cov(X_whitened))
+            )
 
         return X_whitened
 
-    
     @staticmethod
     def preprocessing(X):
         # Centering
