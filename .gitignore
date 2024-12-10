@@ -146,3 +146,4 @@ run/causality/
 run/ckpt/
 *.ipynb
 *.orig
+*_old*
