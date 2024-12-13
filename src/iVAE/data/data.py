@@ -29,7 +29,7 @@ def to_one_hot(x, m=None):
     xoh = []
     for i, xi in enumerate(x):
         xoh += [np.zeros((xi.size, int(m)), dtype=dtp)]
-        xoh[i][np.arange(xi.size), xi.astype(np.int)] = 1
+        xoh[i][np.arange(xi.size), xi.astype(int)] = 1
     return xoh
 
 

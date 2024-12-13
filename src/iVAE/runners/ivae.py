@@ -104,6 +104,9 @@ def runner(args, config):
         # load all training data for eventual evaluation
         Xt, Ut, St = dset.x.to(config.device), dset.u.to(config.device), dset.s
 
+        best_train_perf = None
+        is_best = False
+
         for epoch in range(1, config.epochs + 1):
             model.train()
 
@@ -181,6 +184,12 @@ def runner(args, config):
             train_loss /= len(data_loader)
             loss_hist.append(train_loss)
 
+            if best_train_perf is None or train_perf > best_train_perf:
+                best_train_perf = train_perf
+                is_best = True
+            else:
+                is_best = False
+
             if config.ica:
                 _, _, _, s, _ = model(Xt, Ut)
             else:
@@ -199,8 +208,8 @@ def runner(args, config):
                 )
             )
 
-            if config.checkpoint:
-                # save checkpoints (weights, loss, performance, meta-data) after every epoch
+            if config.checkpoint and is_best:
+                # save best checkpoints (weights, loss, performance, meta-data) after every epoch
                 checkpoint(
                     ckpt_folder,
                     exp_id,
@@ -211,6 +220,7 @@ def runner(args, config):
                     train_loss,
                     train_perf,
                     perf_all,
+                    best=True
                 )
 
             if config.log:
