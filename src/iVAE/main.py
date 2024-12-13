@@ -98,6 +98,8 @@ def make_dirs(args):
     os.makedirs(args.checkpoints, exist_ok=True)
     args.data_path = os.path.join(args.run, "datasets", args.doc)
     os.makedirs(args.data_path, exist_ok=True)
+    args.exp_config_path = os.path.join(args.run, "exp_configs", args.doc)
+    os.makedirs(args.exp_config_path, exist_ok=True)
 
 
 def main():

@@ -136,14 +136,12 @@ datasets/*
 results/* 
 datasets_test/* 
 *.gz 
-*.p
 run/log/
 run/
 *.pdf
 run/plots/
 run/causality/
 *.zip
-run/ckpt/
-*.ipynb
+Independent-Component-Analysis/src/iVAE/run
 *.orig
 *_old*

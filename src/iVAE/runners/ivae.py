@@ -1,4 +1,6 @@
 import time
+import yaml
+import os
 
 import torch
 import torch.nn.functional as F
@@ -252,11 +254,15 @@ def runner(args, config):
                 data_seed=config.s,
                 nps=config.nps,
                 ns=config.ns,
-                ld=d_sources,
+                ld=d_latent,
                 dd=d_data,
                 mixing_layers=config.nl,
             )
             exp_id = logger.exp_id
             logger.save_to_npz(log_dir=dir_log)
+
+    # save the configuration
+    with open(os.path.join(args.exp_config_path, f'config_exp_{exp_id}.yaml'), 'w') as outfile:
+        yaml.dump(vars(config), outfile, default_flow_style=False)
 
     return all_perf_hists, loss_hists, perf_hists
