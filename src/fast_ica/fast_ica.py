@@ -7,7 +7,7 @@ from preprocessing import Preprocessing
 
 class Fast_ICA:
 
-    def __init__(self, n_components: int, func: str = "cubic", max_iter: int = 200, tol: float = 1e-4, a: float = 1) -> None:
+    def __init__(self, n_components: int, func: str = "cubic", max_iter: int = 200, tol: float = 1e-8, a: float = 1) -> None:
         """
         Initialize the Fast_ICA object.
 
