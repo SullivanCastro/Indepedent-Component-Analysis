@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.typing import ArrayLike
 
+
 class Preprocessing:
 
     @staticmethod
@@ -19,8 +20,7 @@ class Preprocessing:
             Centered data matrix of shape (N, M).
         """
         return X - X.mean(axis=1, keepdims=True)
-    
-    
+
     @staticmethod
     def _whitening(X: ArrayLike) -> ArrayLike:
         """
@@ -41,18 +41,22 @@ class Preprocessing:
 
         # Compute the EVD decomposition and handle non positive eigenvalues
         eigenvalues, eigenvectors = np.linalg.eigh(E)
-        eigenvalues_cleaned       = np.maximum(eigenvalues, 1e-6)
+        eigenvalues_cleaned = np.maximum(eigenvalues, 1e-6)
 
         # Compute the whitened data matrix
-        X_whitened = eigenvectors @ np.diag(eigenvalues_cleaned ** -0.5) @ eigenvectors.T @ X
+        X_whitened = (
+            eigenvectors @ np.diag(eigenvalues_cleaned**-0.5) @ eigenvectors.T @ X
+        )
 
         # Check if the whitening was successful
         if np.linalg.norm(np.cov(X_whitened) - np.eye(X.shape[0])) > 1e-3:
-            print(f"[WARNING] Whitening failed, norm of covariance matrix: {np.linalg.norm(np.cov(X_whitened))}")
+            print(
+                "[WARNING] Whitening failed, norm of covariance matrix:",
+                np.linalg.norm(np.cov(X_whitened))
+            )
 
         return X_whitened
 
-    
     @staticmethod
     def preprocessing(X):
         # Centering

@@ -17,16 +17,39 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
-def run_ivae(S, X, U, Sb, Xb, Ub, epochs=20, seed=None, n_layers=2, hidden_dim=20, lr=1e-2, device='cpu'):
-    print('starting ica')
+def run_ivae(
+    S,
+    X,
+    U,
+    Sb,
+    Xb,
+    Ub,
+    epochs=20,
+    seed=None,
+    n_layers=2,
+    hidden_dim=20,
+    lr=1e-2,
+    device="cpu",
+):
+    print("starting ica")
     if seed is not None:
         torch.manual_seed(seed)
     dl = Sb[0].shape[1]
     dd = Xb[0].shape[1]
     ns = Ub[0].shape[1]
-    model = DiscreteIVAE(dl, dd, ns, activation='none', n_layers=n_layers, hidden_dim=hidden_dim, device=device)
+    model = DiscreteIVAE(
+        dl,
+        dd,
+        ns,
+        activation="none",
+        n_layers=n_layers,
+        hidden_dim=hidden_dim,
+        device=device,
+    )
     optimizer = optim.Adam(model.parameters(), lr=lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=4, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, factor=0.1, patience=4, verbose=True
+    )
 
     epoch_loss_hist = []
     epoch_perf_hist = []
@@ -58,28 +81,46 @@ def run_ivae(S, X, U, Sb, Xb, Ub, epochs=20, seed=None, n_layers=2, hidden_dim=2
         perf_mean /= n_batches
         epoch_perf_hist.append(perf_mean)
         scheduler.step(elbo_mean)
-        print('epoch {}:\tloss: {};\tperf: {}'.format(int(it / n_batches), elbo_mean, perf_mean))
+        print(
+            "epoch {}:\tloss: {};\tperf: {}".format(
+                int(it / n_batches), elbo_mean, perf_mean
+            )
+        )
 
     _, _, Z, _ = model(torch.Tensor(X).to(device), torch.Tensor(U).to(device))
     perf = mcc(Z.detach().cpu().numpy(), S)
     print(perf)
 
-    with open('log/discrete/ica_discrete.txt', 'a') as f:
-        f.write(str(perf) + '\n')
+    with open("log/discrete/ica_discrete.txt", "a") as f:
+        f.write(str(perf) + "\n")
 
-    np.savez_compressed('log/discrete/ica_{}.npz'.format(args.seed),
-                        l=np.array(epoch_loss_hist), p=np.array(epoch_perf_hist))
+    np.savez_compressed(
+        "log/discrete/ica_{}.npz".format(args.seed),
+        l=np.array(epoch_loss_hist),
+        p=np.array(epoch_perf_hist),
+    )
 
 
-def run_vae(S, X, Sb, Xb, epochs=20, seed=None, n_layers=2, hidden_dim=20, lr=1e-2, device='cpu'):
-    print('starting vae')
+def run_vae(
+    S, X, Sb, Xb, epochs=20, seed=None, n_layers=2, hidden_dim=20, lr=1e-2, device="cpu"
+):
+    print("starting vae")
     if seed is not None:
         torch.manual_seed(seed)
     dl = Sb[0].shape[1]
     dd = Xb[0].shape[1]
-    model = DiscreteVAE(dl, dd, activation='none', n_layers=n_layers, hidden_dim=hidden_dim, device=device)
+    model = DiscreteVAE(
+        dl,
+        dd,
+        activation="none",
+        n_layers=n_layers,
+        hidden_dim=hidden_dim,
+        device=device,
+    )
     optimizer = optim.Adam(model.parameters(), lr=lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=4, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, factor=0.1, patience=4, verbose=True
+    )
 
     epoch_loss_hist = []
     epoch_perf_hist = []
@@ -110,28 +151,44 @@ def run_vae(S, X, Sb, Xb, epochs=20, seed=None, n_layers=2, hidden_dim=20, lr=1e
         perf_mean /= n_batches
         epoch_perf_hist.append(perf_mean)
         scheduler.step(elbo_mean)
-        print('epoch {}:\tloss: {};\tperf: {}'.format(int(it / n_batches), elbo_mean, perf_mean))
+        print(
+            "epoch {}:\tloss: {};\tperf: {}".format(
+                int(it / n_batches), elbo_mean, perf_mean
+            )
+        )
 
     _, _, Z = model(torch.Tensor(X).to(device))
     perf = mcc(Z.detach().cpu().numpy(), S)
     print(perf)
 
-    with open('log/discrete/vae_discrete.txt', 'a') as f:
-        f.write(str(perf) + '\n')
+    with open("log/discrete/vae_discrete.txt", "a") as f:
+        f.write(str(perf) + "\n")
 
-    np.savez_compressed('log/discrete/vae_{}.npz'.format(args.seed),
-                        l=np.array(epoch_loss_hist), p=np.array(epoch_perf_hist))
+    np.savez_compressed(
+        "log/discrete/vae_{}.npz".format(args.seed),
+        l=np.array(epoch_loss_hist),
+        p=np.array(epoch_perf_hist),
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description='tcl vs vaeica on simulated data')
-    parser.add_argument('-s', '--seed', type=int, default=1, dest='seed', help='random seed - default: 1')
-    parser.add_argument('-m', '--method', type=str, default='ica', dest='method', help='method')
+    parser = argparse.ArgumentParser(description="tcl vs vaeica on simulated data")
+    parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=1,
+        dest="seed",
+        help="random seed - default: 1",
+    )
+    parser.add_argument(
+        "-m", "--method", type=str, default="ica", dest="method", help="method"
+    )
     args = parser.parse_args()
 
-    print('start {} {}'.format(args.seed, args.method))
+    print("start {} {}".format(args.seed, args.method))
 
     np.random.seed(1)
     nps = 3000
@@ -150,17 +207,41 @@ if __name__ == '__main__':
     Xb, Sb, Ub = [], [], []
     n_batches = int(n / batch_size)
     for c in range(n_batches):
-        Sb += [S[idx][c * batch_size:(c + 1) * batch_size]]
-        Xb += [X[idx][c * batch_size:(c + 1) * batch_size]]
-        Ub += [U[idx][c * batch_size:(c + 1) * batch_size]]
+        Sb += [S[idx][c * batch_size : (c + 1) * batch_size]]
+        Xb += [X[idx][c * batch_size : (c + 1) * batch_size]]
+        Ub += [U[idx][c * batch_size : (c + 1) * batch_size]]
     Ub = to_one_hot(Ub, ns)
     U = to_one_hot(U)[0]
 
-    if args.method == 'ica':
-        run_ivae(S, X, U, Sb, Xb, Ub, epochs=50, seed=args.seed, hidden_dim=50, n_layers=2, lr=1e-2, device='cuda')
+    if args.method == "ica":
+        run_ivae(
+            S,
+            X,
+            U,
+            Sb,
+            Xb,
+            Ub,
+            epochs=50,
+            seed=args.seed,
+            hidden_dim=50,
+            n_layers=2,
+            lr=1e-2,
+            device="cuda",
+        )
 
-    elif args.method == 'vae':
-        run_vae(S, X, Sb, Xb, epochs=50, seed=args.seed, hidden_dim=50, n_layers=2, lr=1e-2, device='cuda')
+    elif args.method == "vae":
+        run_vae(
+            S,
+            X,
+            Sb,
+            Xb,
+            epochs=50,
+            seed=args.seed,
+            hidden_dim=50,
+            n_layers=2,
+            lr=1e-2,
+            device="cuda",
+        )
 
     else:
-        raise ValueError('wrong method {}'.format(args.method))
+        raise ValueError("wrong method {}".format(args.method))

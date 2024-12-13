@@ -29,7 +29,7 @@ def to_one_hot(x, m=None):
     xoh = []
     for i, xi in enumerate(x):
         xoh += [np.zeros((xi.size, int(m)), dtype=dtp)]
-        xoh[i][np.arange(xi.size), xi.astype(np.int)] = 1
+        xoh[i][np.arange(xi.size), xi.astype(int)] = 1
     return xoh
 
 
@@ -66,8 +66,15 @@ def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
 
-def generate_mixing_matrix(d_sources: int, d_data=None, lin_type='uniform', cond_threshold=25, n_iter_4_cond=None,
-                           dtype=np.float32, staircase=False):
+def generate_mixing_matrix(
+    d_sources: int,
+    d_data=None,
+    lin_type="uniform",
+    cond_threshold=25,
+    n_iter_4_cond=None,
+    dtype=np.float32,
+    staircase=False,
+):
     """
     Generate square linear mixing matrix
     @param d_sources: dimension of the latent sources
@@ -105,10 +112,12 @@ def generate_mixing_matrix(d_sources: int, d_data=None, lin_type='uniform', cond
     if d_data is None:
         d_data = d_sources
 
-    if lin_type == 'orthogonal':
-        A = (np.linalg.qr(np.random.uniform(-1, 1, (d_sources, d_data)))[0]).astype(dtype)
+    if lin_type == "orthogonal":
+        A = (np.linalg.qr(np.random.uniform(-1, 1, (d_sources, d_data)))[0]).astype(
+            dtype
+        )
 
-    elif lin_type == 'uniform':
+    elif lin_type == "uniform":
         if n_iter_4_cond is None:
             cond_thresh = cond_threshold
         else:
@@ -119,7 +128,9 @@ def generate_mixing_matrix(d_sources: int, d_data=None, lin_type='uniform', cond
                     A[:, i] /= np.sqrt((A[:, i] ** 2).sum())
                 cond_list.append(np.linalg.cond(A))
 
-            cond_thresh = np.percentile(cond_list, 25)  # only accept those below 25% percentile
+            cond_thresh = np.percentile(
+                cond_list, 25
+            )  # only accept those below 25% percentile
 
         gen_mat = _gen_matrix if not staircase else _gen_matrix_staircase
         A = gen_mat(d_sources, d_data, dtype)
@@ -127,12 +138,21 @@ def generate_mixing_matrix(d_sources: int, d_data=None, lin_type='uniform', cond
             A = gen_mat(d_sources, d_data, dtype)
 
     else:
-        raise ValueError('incorrect method')
+        raise ValueError("incorrect method")
     return A
 
 
-def generate_nonstationary_sources(n_per_seg: int, n_seg: int, d: int, prior='gauss', var_bounds=np.array([0.5, 3]),
-                                   dtype=np.float32, uncentered=False, centers=None, staircase=False):
+def generate_nonstationary_sources(
+    n_per_seg: int,
+    n_seg: int,
+    d: int,
+    prior="gauss",
+    var_bounds=np.array([0.5, 3]),
+    dtype=np.float32,
+    uncentered=False,
+    centers=None,
+    staircase=False,
+):
     """
     Generate source signal following a TCL distribution. Within each segment, sources are independent.
     The distribution withing each segment is given by the keyword `dist`
@@ -179,14 +199,14 @@ def generate_nonstationary_sources(n_per_seg: int, n_seg: int, d: int, prior='ga
         m = np.concatenate([m1, m2], axis=1)
 
     labels = np.zeros(n, dtype=dtype)
-    if prior == 'lap':
+    if prior == "lap":
         sources = np.random.laplace(0, 1 / np.sqrt(2), (n, d)).astype(dtype)
-    elif prior == 'hs':
+    elif prior == "hs":
         sources = scipy.stats.hypsecant.rvs(0, 1, (n, d)).astype(dtype)
-    elif prior == 'gauss':
+    elif prior == "gauss":
         sources = np.random.randn(n, d).astype(dtype)
     else:
-        raise ValueError('incorrect dist')
+        raise ValueError("incorrect dist")
 
     for seg in range(n_seg):
         segID = range(n_per_seg * seg, n_per_seg * (seg + 1))
@@ -197,10 +217,31 @@ def generate_nonstationary_sources(n_per_seg: int, n_seg: int, d: int, prior='ga
     return sources, labels, m, L
 
 
-def generate_data(n_per_seg, n_seg, d_sources, d_data=None, n_layers=3, prior='gauss', activation='lrelu', batch_size=0,
-                  seed=10, slope=.1, var_bounds=np.array([0.5, 3]), lin_type='uniform', n_iter_4_cond=1e4,
-                  dtype=np.float32, noisy=0, uncentered=False, centers=None, staircase=False, discrete=False,
-                  one_hot_labels=True, repeat_linearity=False, simple_mixing=True, mix_bounds=np.array([-1, 1])):
+def generate_data(
+    n_per_seg,
+    n_seg,
+    d_sources,
+    d_data=None,
+    n_layers=3,
+    prior="gauss",
+    activation="lrelu",
+    batch_size=0,
+    seed=10,
+    slope=0.1,
+    var_bounds=np.array([0.5, 3]),
+    lin_type="uniform",
+    n_iter_4_cond=1e4,
+    dtype=np.float32,
+    noisy=0,
+    uncentered=False,
+    centers=None,
+    staircase=False,
+    discrete=False,
+    one_hot_labels=True,
+    repeat_linearity=False,
+    simple_mixing=True,
+    mix_bounds=np.array([-1, 1]),
+):
     """
     Generate artificial data with arbitrary mixing
     @param int n_per_seg: number of observations per segment
@@ -239,46 +280,72 @@ def generate_data(n_per_seg, n_seg, d_sources, d_data=None, n_layers=3, prior='g
         d_data = d_sources
 
     # sources
-    S, U, M, L = generate_nonstationary_sources(n_per_seg, n_seg, d_sources, prior=prior,
-                                                var_bounds=var_bounds, dtype=dtype,
-                                                uncentered=uncentered, centers=centers, staircase=staircase)
+    S, U, M, L = generate_nonstationary_sources(
+        n_per_seg,
+        n_seg,
+        d_sources,
+        prior=prior,
+        var_bounds=var_bounds,
+        dtype=dtype,
+        uncentered=uncentered,
+        centers=centers,
+        staircase=staircase,
+    )
     n = n_per_seg * n_seg
-    
+
     # non linearity
-    if activation == 'lrelu':
+    if activation == "lrelu":
         act_f = lambda x: lrelu(x, slope).astype(dtype)
-    elif activation == 'sigmoid':
+    elif activation == "sigmoid":
         act_f = sigmoid
-    elif activation == 'xtanh':
+    elif activation == "xtanh":
         act_f = lambda x: np.tanh(x) + slope * x
-    elif activation == 'none':
+    elif activation == "none":
         act_f = lambda x: x
     else:
-        raise ValueError('incorrect non linearity: {}'.format(activation))
+        raise ValueError("incorrect non linearity: {}".format(activation))
 
     # Mixing time!
 
     if simple_mixing:
-        A = np.random.uniform(mix_bounds[0], mix_bounds[1], (d_sources, d_sources)).astype(dtype)
+        A = np.random.uniform(
+            mix_bounds[0], mix_bounds[1], (d_sources, d_sources)
+        ).astype(dtype)
         X = np.dot(S, A)
-        
+
     else:
         if not repeat_linearity:
             X = S.copy()
             for nl in range(n_layers):
-                A = generate_mixing_matrix(X.shape[1], d_data, lin_type=lin_type, n_iter_4_cond=n_iter_4_cond, dtype=dtype,
-                                           staircase=staircase)
+                A = generate_mixing_matrix(
+                    X.shape[1],
+                    d_data,
+                    lin_type=lin_type,
+                    n_iter_4_cond=n_iter_4_cond,
+                    dtype=dtype,
+                    staircase=staircase,
+                )
                 if nl == n_layers - 1:
                     X = np.dot(X, A)
                 else:
                     X = act_f(np.dot(X, A))
 
         else:
-            assert n_layers > 1  # suppose we always have at least 2 layers. The last layer doesn't have a non-linearity
-            A = generate_mixing_matrix(d_sources, d_data, lin_type=lin_type, n_iter_4_cond=n_iter_4_cond, dtype=dtype)
+            assert (
+                n_layers > 1
+            )  # suppose we always have at least 2 layers. The last layer doesn't have a non-linearity
+            A = generate_mixing_matrix(
+                d_sources,
+                d_data,
+                lin_type=lin_type,
+                n_iter_4_cond=n_iter_4_cond,
+                dtype=dtype,
+            )
             X = act_f(np.dot(S, A))
             if d_sources != d_data:
-                B = generate_mixing_matrix(d_data, lin_type=lin_type, n_iter_4_cond=n_iter_4_cond, dtype=dtype)
+                B = generate_mixing_matrix(
+                    d_data, lin_type=lin_type, n_iter_4_cond=n_iter_4_cond, dtype=dtype
+                )
             else:
                 B = A
             for nl in range(1, n_layers):
@@ -286,7 +353,6 @@ def generate_data(n_per_seg, n_seg, d_sources, d_data=None, n_layers=3, prior='g
                     X = np.dot(X, B)
                 else:
                     X = act_f(np.dot(X, B))
-                    
 
     # add noise:
     if noisy:
@@ -298,33 +364,33 @@ def generate_data(n_per_seg, n_seg, d_sources, d_data=None, n_layers=3, prior='g
     if not batch_size:
         if one_hot_labels:
             U = to_one_hot([U], m=n_seg)[0]
-            
+
         # if U is a vector, transform it in a matrix, so that aux_dim=1
         try:
             U.shape[1]
         except:
             U = np.expand_dims(U, axis=1)
         return S, X, U, M, L, A
-    
+
     else:
         idx = np.random.permutation(n)
         Xb, Sb, Ub, Mb, Lb = [], [], [], [], []
         n_batches = int(n / batch_size)
         for c in range(n_batches):
-            Sb += [S[idx][c * batch_size:(c + 1) * batch_size]]
-            Xb += [X[idx][c * batch_size:(c + 1) * batch_size]]
-            Ub += [U[idx][c * batch_size:(c + 1) * batch_size]]
-            Mb += [M[idx][c * batch_size:(c + 1) * batch_size]]
-            Lb += [L[idx][c * batch_size:(c + 1) * batch_size]]
+            Sb += [S[idx][c * batch_size : (c + 1) * batch_size]]
+            Xb += [X[idx][c * batch_size : (c + 1) * batch_size]]
+            Ub += [U[idx][c * batch_size : (c + 1) * batch_size]]
+            Mb += [M[idx][c * batch_size : (c + 1) * batch_size]]
+            Lb += [L[idx][c * batch_size : (c + 1) * batch_size]]
         if one_hot_labels:
             Ub = to_one_hot(Ub, m=n_seg)
-            
+
     # if U is a vector, transform it in a matrix, so that aux_dim=1
     try:
         U.shape[1]
     except:
         U = np.expand_dims(U, axis=1)
-        
+
         return Sb, Xb, Ub, Mb, Lb, A
 
 
@@ -333,28 +399,58 @@ def save_data(path, *args, **kwargs):
     Generate data and save it.
     :param str path: path where to save the data
     """
-    kwargs['batch_size'] = 0  # leave batch creation to torch DataLoader
+    kwargs["batch_size"] = 0  # leave batch creation to torch DataLoader
     S, X, U, M, L, A = generate_data(*args, **kwargs)
-    print('Creating dataset {} ...'.format(path))
-    dir_path = '/'.join(path.split('/')[:-1])
+    print("Creating dataset {} ...".format(path))
+    dir_path = "/".join(path.split("/")[:-1])
     if not os.path.exists(dir_path):
-        os.makedirs('/'.join(path.split('/')[:-1]))
+        os.makedirs("/".join(path.split("/")[:-1]))
     np.savez_compressed(path, s=S, x=X, u=U, m=M, L=L, A=A)
-    print(' ... done')
+    print(" ... done")
 
 
 class SyntheticDataset(Dataset):
-    def __init__(self, root, nps, ns, dl, dd, nl, s, p, a, uncentered=False, noisy=False, centers=None, double=False,
-                 one_hot_labels=False, simple_mixing=True):
+    def __init__(
+        self,
+        root,
+        nps,
+        ns,
+        dl,
+        dd,
+        nl,
+        s,
+        p,
+        a,
+        uncentered=False,
+        noisy=False,
+        centers=None,
+        double=False,
+        one_hot_labels=False,
+        simple_mixing=True,
+    ):
         self.root = root
-        data = self.load_tcl_data(root, nps, ns, dl, dd, nl, s, p, a, uncentered, noisy, centers, one_hot_labels)
+        data = self.load_tcl_data(
+            root,
+            nps,
+            ns,
+            dl,
+            dd,
+            nl,
+            s,
+            p,
+            a,
+            uncentered,
+            noisy,
+            centers,
+            one_hot_labels,
+        )
         self.data = data
-        self.s = torch.from_numpy(data['s'])
-        self.x = torch.from_numpy(data['x'])
-        self.u = torch.from_numpy(data['u'])
-        self.l = data['L']
-        self.m = data['m']
-        self.A_mix = data['A']
+        self.s = torch.from_numpy(data["s"])
+        self.x = torch.from_numpy(data["x"])
+        self.u = torch.from_numpy(data["u"])
+        self.l = data["L"]
+        self.m = data["m"]
+        self.A_mix = data["A"]
         self.len = self.x.shape[0]
         self.latent_dim = self.s.shape[1]
         self.aux_dim = self.u.shape[1]
@@ -383,36 +479,58 @@ class SyntheticDataset(Dataset):
             return self.x[index], self.x[index2], self.u[index], self.s[index]
 
     @staticmethod
-    def load_tcl_data(root, nps, ns, dl, dd, nl, s, p, a, uncentered, noisy, centers, one_hot_labels):
-        path_to_dataset = root + 'tcl_' + '_'.join(
-            [str(nps), str(ns), str(dl), str(dd), str(nl), str(s), p, a])
+    def load_tcl_data(
+        root, nps, ns, dl, dd, nl, s, p, a, uncentered, noisy, centers, one_hot_labels
+    ):
+        path_to_dataset = (
+            root
+            + "tcl_"
+            + "_".join([str(nps), str(ns), str(dl), str(dd), str(nl), str(s), p, a])
+        )
         if uncentered:
-            path_to_dataset += '_u'
+            path_to_dataset += "_u"
         if noisy:
-            path_to_dataset += '_noisy'
+            path_to_dataset += "_noisy"
         if one_hot_labels:
-            path_to_dataset += '_one_hot'
-        path_to_dataset += '.npz'
+            path_to_dataset += "_one_hot"
+        path_to_dataset += ".npz"
 
         if not os.path.exists(path_to_dataset) or s is None:
             # if the path is not found or if the seed is not defined,
             # create a new dataset
-            kwargs = {"n_per_seg": nps, "n_seg": ns, "d_sources": dl, "d_data": dd, "n_layers": nl, "prior": p,
-                      "activation": a, "seed": s, "batch_size": 0, "uncentered": uncentered, "noisy": noisy,
-                      "centers": centers, "repeat_linearity": True, "one_hot_labels": one_hot_labels}
+            kwargs = {
+                "n_per_seg": nps,
+                "n_seg": ns,
+                "d_sources": dl,
+                "d_data": dd,
+                "n_layers": nl,
+                "prior": p,
+                "activation": a,
+                "seed": s,
+                "batch_size": 0,
+                "uncentered": uncentered,
+                "noisy": noisy,
+                "centers": centers,
+                "repeat_linearity": True,
+                "one_hot_labels": one_hot_labels,
+            }
             save_data(path_to_dataset, **kwargs)
-        print('loading data from {}'.format(path_to_dataset))
+        print("loading data from {}".format(path_to_dataset))
         return np.load(path_to_dataset)
 
     def get_test_sample(self, batch_size, seed=None):
         if seed is not None:
             np.random.seed(seed)
         idx = np.random.randint(max(0, self.len - batch_size))
-        return self.x[idx:idx + batch_size], self.u[idx:idx + batch_size], self.s[idx:idx + batch_size]
+        return (
+            self.x[idx : idx + batch_size],
+            self.u[idx : idx + batch_size],
+            self.s[idx : idx + batch_size],
+        )
 
 
 class CustomSyntheticDataset(Dataset):
-    def __init__(self, X, U, S=None, device='cpu'):
+    def __init__(self, X, U, S=None, device="cpu"):
         self.device = device
         self.x = torch.from_numpy(X).to(self.device)
         self.u = torch.from_numpy(U).to(self.device)
@@ -425,7 +543,7 @@ class CustomSyntheticDataset(Dataset):
         self.aux_dim = self.u.shape[1]
         self.data_dim = self.x.shape[1]
         self.nps = int(self.len / self.aux_dim)
-        print('data loaded on {}'.format(self.x.device))
+        print("data loaded on {}".format(self.x.device))
 
     def get_dims(self):
         return self.data_dim, self.latent_dim, self.aux_dim
@@ -437,17 +555,30 @@ class CustomSyntheticDataset(Dataset):
         return self.x[index], self.u[index], self.s[index]
 
     def get_metadata(self):
-        return {'nps': self.nps,
-                'ns': self.aux_dim,
-                'n': self.len,
-                'latent_dim': self.latent_dim,
-                'data_dim': self.data_dim,
-                'aux_dim': self.aux_dim,
-                }
+        return {
+            "nps": self.nps,
+            "ns": self.aux_dim,
+            "n": self.len,
+            "latent_dim": self.latent_dim,
+            "data_dim": self.data_dim,
+            "aux_dim": self.aux_dim,
+        }
 
 
-def create_if_not_exist_dataset(root='data/', nps=1000, ns=40, dl=2, dd=4, nl=3, s=1, p='gauss', a='xtanh',
-                                uncentered=False, noisy=False, arg_str=None):
+def create_if_not_exist_dataset(
+    root="data/",
+    nps=1000,
+    ns=40,
+    dl=2,
+    dd=4,
+    nl=3,
+    s=1,
+    p="gauss",
+    a="xtanh",
+    uncentered=False,
+    noisy=False,
+    arg_str=None,
+):
     """
     Create a dataset if it doesn't exist.
     This is useful as a setup step when running multiple jobs in parallel, to avoid having many scripts attempting
@@ -457,34 +588,48 @@ def create_if_not_exist_dataset(root='data/', nps=1000, ns=40, dl=2, dd=4, nl=3,
     if arg_str is not None:
         # overwrites all other arg values
         # arg_str should be of this form: nps_ns_dl_dd_nl_s_p_a_u_n
-        arg_list = arg_str.split('\n')[0].split('_')
+        arg_list = arg_str.split("\n")[0].split("_")
         print(arg_list)
         assert len(arg_list) == 10
         nps, ns, dl, dd, nl = map(int, arg_list[0:5])
         p, a = arg_list[6:8]
-        if arg_list[5] == 'n':
+        if arg_list[5] == "n":
             s = None
         else:
             s = int(arg_list[5])
-        if arg_list[-2] == 'f':
+        if arg_list[-2] == "f":
             uncentered = False
         else:
             uncentered = True
-        if arg_list[-1] == 'f':
+        if arg_list[-1] == "f":
             noisy = False
         else:
             noisy = True
 
-    path_to_dataset = root + 'tcl_' + '_'.join(
-        [str(nps), str(ns), str(dl), str(dd), str(nl), str(s), p, a])
+    path_to_dataset = (
+        root
+        + "tcl_"
+        + "_".join([str(nps), str(ns), str(dl), str(dd), str(nl), str(s), p, a])
+    )
     if uncentered:
-        path_to_dataset += '_u'
+        path_to_dataset += "_u"
     if noisy:
-        path_to_dataset += '_n'
-    path_to_dataset += '.npz'
+        path_to_dataset += "_n"
+    path_to_dataset += ".npz"
 
     if not os.path.exists(path_to_dataset) or s is None:
-        kwargs = {"n_per_seg": nps, "n_seg": ns, "d_sources": dl, "d_data": dd, "n_layers": nl, "prior": p,
-                  "activation": a, "seed": s, "batch_size": 0, "uncentered": uncentered, "noisy": noisy}
+        kwargs = {
+            "n_per_seg": nps,
+            "n_seg": ns,
+            "d_sources": dl,
+            "d_data": dd,
+            "n_layers": nl,
+            "prior": p,
+            "activation": a,
+            "seed": s,
+            "batch_size": 0,
+            "uncentered": uncentered,
+            "noisy": noisy,
+        }
         save_data(path_to_dataset, **kwargs)
     return path_to_dataset

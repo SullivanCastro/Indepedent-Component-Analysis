@@ -7,7 +7,14 @@ from preprocessing import Preprocessing
 
 class Fast_ICA:
 
-    def __init__(self, n_components: int, func: str = "cubic", max_iter: int = 200, tol: float = 1e-8, a: float = 1) -> None:
+    def __init__(
+        self,
+        n_components: int,
+        func: str = "cubic",
+        max_iter: int = 200,
+        tol: float = 1e-4,
+        a: float = 1,
+    ) -> None:
         """
         Initialize the Fast_ICA object.
 
@@ -32,16 +39,15 @@ class Fast_ICA:
         self._tol = tol
         self._n_components = n_components
         if func == "cubic":
-            self._g = lambda X: X ** 3
-            self._dg = lambda X: 3 * X ** 2
+            self._g = lambda X: X**3
+            self._dg = lambda X: 3 * X**2
         elif func == "exp":
-            self._g = lambda X: X * exp(-X**2 / 2)
-            self._dg = lambda X: (1 - X**2) * exp(-X**2 / 2)
+            self._g = lambda X: X * exp(-(X**2) / 2)
+            self._dg = lambda X: (1 - X**2) * exp(-(X**2) / 2)
         elif func == "tanh":
             assert 1 <= a <= 2, "a must be in the range [1, 2]"
             self._g = lambda X: np.tanh(a * X)
             self._dg = lambda X: a * (1 - np.tanh(a * X) ** 2)
-
 
     def _compute_new_weights(self, X: ArrayLike, w: ArrayLike) -> ArrayLike:
         """
@@ -50,7 +56,8 @@ class Fast_ICA:
         Parameters
         ----------
         X : ArrayLike
-            Data matrix of shape (M, T), where M is the number of features, and T is the number of samples.
+            Data matrix of shape (M, T), where M is the number of features, 
+            and T is the number of samples.
         w : ArrayLike
             Current weight vector of shape (M,).
 
@@ -65,17 +72,20 @@ class Fast_ICA:
         w_new = cov_g - cov_dg
         return w_new / norm(w_new, ord=2)
 
-
-    def _orthogonalisation_iterative(self, w: ArrayLike, previous_w: ArrayLike) -> ArrayLike:
+    def _orthogonalisation_iterative(
+        self, w: ArrayLike, previous_w: ArrayLike
+    ) -> ArrayLike:
         """
-        Orthogonalize the new weight vector w with respect to the previous weight vectors using Gram-Schmidt.
+        Orthogonalize the new weight vector w with respect to the previous weight 
+        vectors using Gram-Schmidt.
 
         Parameters
         ----------
         w : ArrayLike
             New weight vector of shape (M,).
         previous_w : ArrayLike
-            Previous weight vectors of shape (K, M), where K < M is the number of already computed components.
+            Previous weight vectors of shape (K, M), where K < M is the number of already 
+            computed components.
 
         Returns
         -------
@@ -84,7 +94,6 @@ class Fast_ICA:
         """
         w -= previous_w.T @ (previous_w @ w)
         return w / norm(w, ord=2)
-
 
     def decorrelation(self, W: ArrayLike) -> ArrayLike:
         """
@@ -102,7 +111,6 @@ class Fast_ICA:
         """
         eigvals, eigvecs = eigh(W @ W.T)
         return eigvecs @ diag(1.0 / np.sqrt(eigvals)) @ eigvecs.T @ W
-    
 
     def fit_newton(self, X: ArrayLike) -> None:
         """
@@ -125,7 +133,9 @@ class Fast_ICA:
         self.weights = np.random.random((self._n_components, N))
 
         for i in range(self._n_components):
-            self.weights[i] = self._orthogonalisation_iterative(self.weights[i], self.weights[:i])
+            self.weights[i] = self._orthogonalisation_iterative(
+                self.weights[i], self.weights[:i]
+            )
 
         # FastICA algorithm
         for p in range(self._n_components):
@@ -136,7 +146,9 @@ class Fast_ICA:
             cpt = 0
 
             # Check convergence
-            while cpt < self._max_iter and abs(np.inner(w_p, w_p_old)) < (1 - self._tol):
+            while cpt < self._max_iter and abs(np.inner(w_p, w_p_old)) < (
+                1 - self._tol
+            ):
                 # Update weights
                 w_new = self._compute_new_weights(X, w_p)
 
@@ -150,7 +162,6 @@ class Fast_ICA:
                 cpt += 1
 
             self.weights[p] = w_p
-
 
     def fit_parallel(self, X: ArrayLike) -> None:
         """
@@ -171,9 +182,9 @@ class Fast_ICA:
         W = np.random.random((self._n_components, M))  # Shape: (n_components, M)
 
         for _ in range(self._max_iter):
-            W1 = np.array([
-                self._compute_new_weights(X, w) for w in W
-            ])  # Update all weights in parallel
+            W1 = np.array(
+                [self._compute_new_weights(X, w) for w in W]
+            )  # Update all weights in parallel
             W1 = self.decorrelation(W1)  # Decorrelate weights
 
             # Check convergence
@@ -182,7 +193,6 @@ class Fast_ICA:
             W = W1
 
         self.weights = W
-
 
     def transform(self, X: ArrayLike) -> ArrayLike:
         """
@@ -201,8 +211,7 @@ class Fast_ICA:
         X = Preprocessing.preprocessing(X)
         return self.weights @ X
 
-
-    def fit_transform(self, X: ArrayLike, method: str = 'parallel') -> ArrayLike:
+    def fit_transform(self, X: ArrayLike, method: str = "parallel") -> ArrayLike:
         """
         Apply the Fast_ICA algorithm to the data matrix X and return the projected data matrix.
 
@@ -218,13 +227,12 @@ class Fast_ICA:
         ArrayLike
             Data matrix projected into the independent components space of shape (N, T).
         """
-        if method == 'iterative':
+        if method == "iterative":
             self.fit_newton(X)
         else:
             self.fit_parallel(X)
 
         return self.transform(X)
-
 
     @property
     def W(self) -> ArrayLike:
@@ -237,7 +245,6 @@ class Fast_ICA:
             Unmixing matrix of shape (N, M).
         """
         return self.weights
-
 
     @property
     def A(self) -> ArrayLike:

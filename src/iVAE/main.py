@@ -9,8 +9,9 @@ import yaml
 
 from runners import ivae_runner, tcl_runner
 
+
 def parse():
-    '''
+    """
     Config arguments:
     Dataset descriptors
     nps: (int) number of points per segment (n_per_seg)
@@ -57,15 +58,23 @@ def parse():
     log: (bool) if True, save logs of the experiment. Does not work properly yet, use False!
     simple_mixing: if True, have elements of mixing matrix from a Uniform distribution \
     and skip all the other mixing code
-    '''
-    parser = argparse.ArgumentParser(description='')
+    """
+    parser = argparse.ArgumentParser(description="")
 
-    parser.add_argument('--config', type=str, default='ivae.yaml', help='Path to the config file')
-    parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
-    parser.add_argument('--doc', type=str, default='', help='A string for documentation purpose')
+    parser.add_argument(
+        "--config", type=str, default="ivae.yaml", help="Path to the config file"
+    )
+    parser.add_argument(
+        "--run", type=str, default="run", help="Path for saving running related data."
+    )
+    parser.add_argument(
+        "--doc", type=str, default="", help="A string for documentation purpose"
+    )
 
-    parser.add_argument('--n-sims', type=int, default=1, help='Number of simulations to run')
-    parser.add_argument('--seed', type=int, default=0, help='Random seed')
+    parser.add_argument(
+        "--n-sims", type=int, default=1, help="Number of simulations to run"
+    )
+    parser.add_argument("--seed", type=int, default=0, help="Random seed")
 
     return parser.parse_args()
 
@@ -83,11 +92,11 @@ def dict2namespace(config):
 
 def make_dirs(args):
     os.makedirs(args.run, exist_ok=True)
-    args.log = os.path.join(args.run, 'logs', args.doc)
+    args.log = os.path.join(args.run, "logs", args.doc)
     os.makedirs(args.log, exist_ok=True)
-    args.checkpoints = os.path.join(args.run, 'checkpoints', args.doc)
+    args.checkpoints = os.path.join(args.run, "checkpoints", args.doc)
     os.makedirs(args.checkpoints, exist_ok=True)
-    args.data_path = os.path.join(args.run, 'datasets', args.doc)
+    args.data_path = os.path.join(args.run, "datasets", args.doc)
     os.makedirs(args.data_path, exist_ok=True)
 
 
@@ -95,10 +104,12 @@ def main():
     args = parse()
     make_dirs(args)
 
-    with open(os.path.join('configs', args.config), 'r') as f:
+    with open(os.path.join("configs", args.config), "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     new_config = dict2namespace(config)
-    new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    new_config.device = (
+        torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    )
     # print(new_config)
 
     np.random.seed(args.seed)
@@ -109,10 +120,13 @@ def main():
     else:
         r = ivae_runner(args, new_config)
     # r = clean_vae_runner(args, new_config)
-    fname = os.path.join(args.run,
-                         '_'.join([os.path.splitext(args.config)[0], str(args.seed), str(args.n_sims)]) + '.p')
+    fname = os.path.join(
+        args.run,
+        "_".join([os.path.splitext(args.config)[0], str(args.seed), str(args.n_sims)])
+        + ".p",
+    )
     pickle.dump(r, open(fname, "wb"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
