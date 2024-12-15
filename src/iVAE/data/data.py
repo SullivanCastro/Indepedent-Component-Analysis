@@ -443,6 +443,7 @@ class SyntheticDataset(Dataset):
             noisy,
             centers,
             one_hot_labels,
+            simple_mixing,
         )
         self.data = data
         self.s = torch.from_numpy(data["s"])
@@ -463,6 +464,7 @@ class SyntheticDataset(Dataset):
         self.noisy = noisy
         self.double = double
         self.one_hot_labels = one_hot_labels
+        self.simple_mixing = simple_mixing
 
     def get_dims(self):
         return self.data_dim, self.latent_dim, self.aux_dim
@@ -480,7 +482,7 @@ class SyntheticDataset(Dataset):
 
     @staticmethod
     def load_tcl_data(
-        root, nps, ns, dl, dd, nl, s, p, a, uncentered, noisy, centers, one_hot_labels
+        root, nps, ns, dl, dd, nl, s, p, a, uncentered, noisy, centers, one_hot_labels, simple_mixing
     ):
         path_to_dataset = (
             root
@@ -513,6 +515,7 @@ class SyntheticDataset(Dataset):
                 "centers": centers,
                 "repeat_linearity": True,
                 "one_hot_labels": one_hot_labels,
+                "simple_mixing": simple_mixing
             }
             save_data(path_to_dataset, **kwargs)
         print("loading data from {}".format(path_to_dataset))
