@@ -10,3 +10,4 @@ from .nets import (
     permute_dims,
 )
 from .wrappers import IVAE_wrapper, TCL_wrapper
+from .utils import load_checkpoint
