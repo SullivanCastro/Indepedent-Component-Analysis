@@ -10,8 +10,6 @@ c: 0
 checkpoint: true
 d: 10
 dd: 5
-device: !!python/object/apply:torch.device
-- cuda
 dl: 5
 epochs: 100
 gamma: 0
