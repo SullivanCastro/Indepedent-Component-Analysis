@@ -14,6 +14,7 @@ class Fast_ICA:
         max_iter: int = 200,
         tol: float = 1e-4,
         a: float = 1,
+        whiten_method: str = "eigh",
     ) -> None:
         """
         Initialize the Fast_ICA object.
@@ -30,6 +31,8 @@ class Fast_ICA:
             The non-linearity to use ('cubic', 'exp', or 'tanh').
         a : float, optional
             Scaling factor for 'tanh' non-linearity (default is 1).
+        whiten_method : str, optional
+            Method to use for whitening ('eigh' for eigendecomposition, 'svd' for SVD).
 
         Returns
         -------
@@ -48,6 +51,17 @@ class Fast_ICA:
             assert 1 <= a <= 2, "a must be in the range [1, 2]"
             self._g = lambda X: np.tanh(a * X)
             self._dg = lambda X: a * (1 - np.tanh(a * X) ** 2)
+        self.whiten_method = whiten_method
+        self.X_whitened = None
+
+    
+    def _preprocessing(self, X: ArrayLike, update: bool = False) -> ArrayLike:
+        if self.X_whitened is None or update:
+            self.X_whitened = Preprocessing.preprocessing(X, whiten_method=self.whiten_method)
+        
+        return self.X_whitened
+        
+
 
     def _compute_new_weights(self, X: ArrayLike, w: ArrayLike) -> ArrayLike:
         """
@@ -127,7 +141,7 @@ class Fast_ICA:
         """
         # Preprocessing of X
         N, _ = X.shape
-        X = Preprocessing.preprocessing(X)
+        X = self._preprocessing(X, update=True)
 
         # Initialize random weights
         self.weights = np.random.random((self._n_components, N))
@@ -177,7 +191,7 @@ class Fast_ICA:
         None
         """
         # Preprocessing of X
-        X = Preprocessing.preprocessing(X)
+        X = self._preprocessing(X, update=True)
         M, _ = X.shape
         W = np.random.random((self._n_components, M))  # Shape: (n_components, M)
 
@@ -208,7 +222,7 @@ class Fast_ICA:
         ArrayLike
             Data matrix projected into the independent components space of shape (N, T).
         """
-        X = Preprocessing.preprocessing(X)
+        X = self._preprocessing(X)
         return self.weights @ X
 
     def fit_transform(self, X: ArrayLike, method: str = "parallel") -> ArrayLike:

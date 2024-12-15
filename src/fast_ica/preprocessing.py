@@ -13,56 +13,56 @@ class Preprocessing:
         Parameters
         ----------
         X : ArrayLike
-            Data matrix of shape (N, M).
+            Data matrix of shape (n_components, n_samples).
 
         Returns
         -------
         ArrayLike
-            Centered data matrix of shape (N, M).
+            Centered data matrix of shape (n_components, n_samples).
         """
-        XT = X.T
-        return XT - XT.mean(axis=-1, keepdims=True)
+        return X - X.mean(axis=-1, keepdims=True)
 
     @staticmethod
-    def _whitening_eigh(X: ArrayLike, n_components=1) -> ArrayLike:
+    def _whitening_eigh(X: ArrayLike) -> ArrayLike:
         """
         Whitening of the data matrix X such that X_whitened @ X_whitened.T = I.
 
         Parameters
         ----------
         X : ArrayLike
-            Data matrix of shape (N, M).
+            Data matrix of shape (n_components, n_samples).
 
         Returns
         -------
         ArrayLike
-            Whitened data matrix of shape (N, M).
+            Whitened data matrix of shape (n_componentss, n_samples).
         """
-        # Faster when num_samples >> n_features
-        _, n_samples = X.shape
-        d, u = np.linalg.eigh(X.dot(X.T))
-        sort_indices = np.argsort(d)[::-1]
-        eps = np.finfo(d.dtype).eps * 10
-        degenerate_idx = d < eps
+        # Compute the diagonalisation of the covariance matrix
+        eigvals, eigvecs = np.linalg.eigh(X.dot(X.T))
+
+        # Sort the eigenvalues in descending order
+        sort_eigvals = np.argsort(eigvals)[::-1]
+
+        # Handle the degenerate eigenvalues
+        eps = np.finfo(eigvals.dtype).eps * 10
+        degenerate_idx = eigvals < eps
         if np.any(degenerate_idx):
             warnings.warn(
                 "There are some small singular values, using "
                 "whiten_solver = 'svd' might lead to more "
                 "accurate results."
             )
-        d[degenerate_idx] = eps  # For numerical issues
-        np.sqrt(d, out=d)
-        d, u = d[sort_indices], u[:, sort_indices]
+        eigvals[degenerate_idx] = eps  # For numerical issues
 
-        u *= np.sign(u[0])
-        K = (u / d).T[:n_components]
-        X_whitened = np.dot(K, X)
-        X_whitened *= np.sqrt(n_samples)
-        return X_whitened
+        # Sort and compute the square root of the eigenvalues
+        eigvals = np.sqrt(eigvals)
+        eigvals, eigvecs = eigvals[sort_eigvals], eigvecs[:, sort_eigvals]
+
+        return eigvals, eigvecs
     
     
     @staticmethod
-    def _whitening_svd(X: ArrayLike, n_components=1) -> ArrayLike:
+    def _whitening_svd(X: ArrayLike) -> ArrayLike:
         """
         
         Parameters
@@ -75,32 +75,39 @@ class Preprocessing:
         ArrayLike
             Whitened data matrix of shape (n_components, n_samples
         """
-        _, n_samples = X.shape
-        u, d = np.linalg.svd(X, full_matrices=False)[:2]
+        # Compute the SVD of the data matrix
+        sigvecs, sigvals = np.linalg.svd(X, full_matrices=False)[:2]
 
-        u *= np.sign(u[0])
-        K = (u / d).T[:n_components]
-        X_whitened = np.dot(K, X)
-        X_whitened *= np.sqrt(n_samples)
-        return X_whitened
+        return sigvals, sigvecs
     
 
     @staticmethod
-    def _whitening(X, method="svd", n_components=1):
-        if method == "eigh":
-            return Preprocessing._whitening_eigh(X, n_components)
-        elif method == "svd":
-            return Preprocessing._whitening_svd(X, n_components)
+    def _whitening(X, whiten_method="svd"):
+        if whiten_method == "eigh":
+            return Preprocessing._whitening_eigh(X)
+        elif whiten_method == "svd":
+            return Preprocessing._whitening_svd(X)
         else:
             raise ValueError("Invalid method. Choose between 'eigh' and 'svd'.")
     
 
     @staticmethod
-    def preprocessing(X, method="svd", n_components=1):
+    def preprocessing(X, whiten_method="eigh"):
 
         # Centering
-        XT = Preprocessing._centering(X)
+        X = Preprocessing._centering(X)
 
         # Whitening
-        XT = Preprocessing._whitening(XT, method=method, n_components=n_components)
-        return XT
+        vals, vecs = Preprocessing._whitening(X, whiten_method=whiten_method)
+
+        # The projection is up to the sign of the vector
+        vecs *= np.sign(vecs[0])
+
+        # Creating the projection whitening matrix
+        K = (vecs / vals).T[:X.shape[0]]
+
+        # Projecting the data
+        X_whitened = K @ X
+        X_whitened *= np.sqrt(X.shape[1])
+
+        return X_whitened
