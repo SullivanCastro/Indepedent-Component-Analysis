@@ -1,13 +1,13 @@
 # dataset
 nps: 1000
-ns: 40
-dl: 5
-dd: 5
+ns: 5
+dl: 2
+dd: 2
 nl: 3
 s: 1
 p: 'gauss'
 act: 'xtanh'
-uncentered: false
+uncentered: true
 noisy: false
 staircase: false
 
@@ -15,16 +15,16 @@ staircase: false
 n_layers: 3
 hidden_dim: 100
 activation: 'xtanh'
-ica: true
+ica: false
 initialize: true
 batch_norm: false
 tcl: false
 
 # learning
-a: 100
+a: 1000
 b: 1
-c: 0
-d: 10
+c: 1
+d: 1
 gamma: 0
 lr: 0.01
 batch_size: 64

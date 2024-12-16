@@ -33,3 +33,9 @@ no_scheduler: false
 scheduler_tol: 3
 anneal: false
 anneal_epoch: 20
+
+shuffle: true
+one_hot: true
+checkpoint: true
+log: true
+simple_mixing: false
