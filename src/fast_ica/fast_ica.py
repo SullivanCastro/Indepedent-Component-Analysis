@@ -211,7 +211,7 @@ class FastICA:
                 break
             W = W1
             if source is not None:
-                perf[i] = mcc((W @ X.T).T, source)
+                perf[i] = mcc((W @ XT).T, source)
 
         self.weights = W
         return perf[:i]
