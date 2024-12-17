@@ -3,10 +3,10 @@ from numpy import exp, diag
 from numpy.linalg import eigh, pinv, norm
 from numpy.typing import ArrayLike
 from preprocessing import Preprocessing
-from src.iVAE.metrics import mean_corr_coef
+from src.iVAE.metrics import mean_corr_coef as mcc
 
 
-class Fast_ICA:
+class FastICA:
 
     def __init__(
         self,
@@ -71,7 +71,7 @@ class Fast_ICA:
         Parameters
         ----------
         X : ArrayLike
-            Data matrix of shape (M, T), where M is the number of features, 
+            Data matrix of shape (T, M), where M is the number of features, 
             and T is the number of samples.
         w : ArrayLike
             Current weight vector of shape (M,).
@@ -134,20 +134,18 @@ class Fast_ICA:
         Parameters
         ----------
         X : ArrayLike
-            Data matrix of shape (N, M).
+            Data matrix of shape (T, M).
 
         Returns
         -------
         None
         """
         # Preprocessing of X
-        N, _ = X.shape
-        X = self._preprocessing(X, update=True)
+        XT = self._preprocessing(X, update=True)
+        M, _ = XT.shape
 
         # Initialize random weights
-        self.weights = np.random.random((self._n_components, N))
-
-        perf = np.zeros(self._max_iter)
+        self.weights = np.random.random((self._n_components, M))
 
         for i in range(self._n_components):
             self.weights[i] = self._orthogonalisation_iterative(
@@ -167,7 +165,7 @@ class Fast_ICA:
                 1 - self._tol
             ):
                 # Update weights
-                w_new = self._compute_new_weights(X, w_p)
+                w_new = self._compute_new_weights(XT, w_p)
 
                 # Orthogonalization
                 w_new = self._orthogonalisation_iterative(w_new, self.weights[:p])
@@ -178,12 +176,9 @@ class Fast_ICA:
 
                 cpt += 1
 
-                if source is not None:
-                    perf[p] = mean_corr_coef((w_p @ X).T, (source).T)
-
             self.weights[p] = w_p
         
-        return perf[:p]
+        return np.zeros(1)
 
     def fit_parallel(self, X: ArrayLike, source: None = ArrayLike) -> None:
         """
@@ -192,21 +187,22 @@ class Fast_ICA:
         Parameters
         ----------
         X : ArrayLike
-            Data matrix of shape (M, T).
+            Data matrix of shape (T, M).
 
         Returns
         -------
         None
         """
         # Preprocessing of X
-        X = self._preprocessing(X, update=True)
-        M, _ = X.shape
+        XT = self._preprocessing(X, update=True)
+        M, _ = XT.shape
         W = np.random.random((self._n_components, M))  # Shape: (n_components, M)
         perf = np.zeros(self._max_iter)
 
-        for i in range(self._max_iter):
+        perf[0] = mcc((W @ X.T).T, source)
+        for i in range(1, self._max_iter):
             W1 = np.array(
-                [self._compute_new_weights(X, w) for w in W]
+                [self._compute_new_weights(XT, w) for w in W]
             )  # Update all weights in parallel
             W1 = self.decorrelation(W1)  # Decorrelate weights
 
@@ -215,8 +211,7 @@ class Fast_ICA:
                 break
             W = W1
             if source is not None:
-                print(mean_corr_coef((W @ X).T, source.T))
-                perf[i] = mean_corr_coef((W @ X).T, source.T)
+                perf[i] = mcc((W @ X.T).T, source)
 
         self.weights = W
         return perf[:i]
@@ -228,15 +223,15 @@ class Fast_ICA:
         Parameters
         ----------
         X : ArrayLike
-            Data matrix of shape (M, T).
+            Data matrix of shape (T, M).
 
         Returns
         -------
         ArrayLike
             Data matrix projected into the independent components space of shape (N, T).
         """
-        X = self._preprocessing(X)
-        return self.weights @ X
+        XT = self._preprocessing(X)
+        return (self.weights @ X.T).T
 
     def fit_transform(self, X: ArrayLike, method: str = "parallel", source: None = ArrayLike) -> ArrayLike:
         """
@@ -245,7 +240,7 @@ class Fast_ICA:
         Parameters
         ----------
         X : ArrayLike
-            Data matrix of shape (M, T).
+            Data matrix of shape (T, M).
         method : str, optional
             Method to use for fitting ('iterative' for Newton, 'parallel' for parallel FastICA).
 

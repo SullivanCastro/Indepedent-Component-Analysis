@@ -20,7 +20,8 @@ class Preprocessing:
         ArrayLike
             Centered data matrix of shape (n_components, n_samples).
         """
-        return X - X.mean(axis=-1, keepdims=True)
+        XT = X.T
+        return XT - XT.mean(axis=-1, keepdims=True)
 
     @staticmethod
     def _whitening_eigh(X: ArrayLike) -> ArrayLike:
@@ -95,19 +96,19 @@ class Preprocessing:
     def preprocessing(X, whiten_method="eigh"):
 
         # Centering
-        X = Preprocessing._centering(X)
+        XT = Preprocessing._centering(X)
 
         # Whitening
-        vals, vecs = Preprocessing._whitening(X, whiten_method=whiten_method)
+        vals, vecs = Preprocessing._whitening(XT, whiten_method=whiten_method)
 
         # The projection is up to the sign of the vector
         vecs *= np.sign(vecs[0])
 
         # Creating the projection whitening matrix
-        K = (vecs / vals).T[:X.shape[0]]
+        K = (vecs / vals).T[:XT.shape[0]]
 
         # Projecting the data
-        X_whitened = K @ X
-        X_whitened *= np.sqrt(X.shape[1])
+        X_whitened = K @ XT
+        X_whitened *= np.sqrt(XT.shape[1])
 
         return X_whitened
