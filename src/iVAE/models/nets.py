@@ -315,14 +315,14 @@ class cleanVAE(nn.Module):
         f = self.f(s)
         return f
 
-    def forward(self, x):
+    def forward(self, x, u=None):
         g, v = self.encoder(x)
         s = self.reparameterize(g, v)
         f = self.decoder(s)
-        return f, g, v, s
+        return f, g, v, s, None
 
     def elbo(self, x, u, N, a=1.0, b=1.0, c=1.0, d=1.0):
-        f, g, v, z = self.forward(x)
+        f, g, v, z, _ = self.forward(x)
         M, d_latent = z.size()
         logpx = log_normal(x, f, self.decoder_var.to(x.device)).sum(dim=-1)
         logqs_cux = log_normal(z, g, v).sum(dim=-1)
