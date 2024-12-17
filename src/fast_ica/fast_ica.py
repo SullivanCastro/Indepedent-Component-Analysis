@@ -4,6 +4,7 @@ from numpy.linalg import eigh, pinv, norm
 from numpy.typing import ArrayLike
 from preprocessing import Preprocessing
 from src.iVAE.metrics import mean_corr_coef as mcc
+import torch
 
 
 class FastICA:
@@ -127,7 +128,7 @@ class FastICA:
         eigvals, eigvecs = eigh(W @ W.T)
         return eigvecs @ diag(1.0 / np.sqrt(eigvals)) @ eigvecs.T @ W
 
-    def fit_newton(self, X: ArrayLike, source: None = ArrayLike) -> None:
+    def fit_newton(self, X: ArrayLike, source: ArrayLike = None) -> None:
         """
         Fit the Fast_ICA model to the data matrix X using Newton's Method.
 
@@ -180,7 +181,7 @@ class FastICA:
         
         return np.zeros(1)
 
-    def fit_parallel(self, X: ArrayLike, source: None = ArrayLike) -> None:
+    def fit_parallel(self, X: ArrayLike, source: ArrayLike = None) -> None:
         """
         Fit the Fast_ICA model to the data matrix X using the parallel FastICA algorithm.
 
@@ -193,13 +194,20 @@ class FastICA:
         -------
         None
         """
+        # Change source to numpy if it is Pytorch tensor
+        if isinstance(source, torch.Tensor):
+            source = source.numpy()
+
+
         # Preprocessing of X
         XT = self._preprocessing(X, update=True)
         M, _ = XT.shape
         W = np.random.random((self._n_components, M))  # Shape: (n_components, M)
         perf = np.zeros(self._max_iter)
 
-        perf[0] = mcc((W @ X.T).T, source)
+        if source is not None:
+            perf[0] = mcc((W @ XT).T, source)
+        
         for i in range(1, self._max_iter):
             W1 = np.array(
                 [self._compute_new_weights(XT, w) for w in W]
@@ -233,7 +241,7 @@ class FastICA:
         XT = self._preprocessing(X)
         return (self.weights @ XT).T
 
-    def fit_transform(self, X: ArrayLike, method: str = "parallel", source: None = ArrayLike) -> ArrayLike:
+    def fit_transform(self, X: ArrayLike, method: str = "parallel", source: ArrayLike = None) -> ArrayLike:
         """
         Apply the Fast_ICA algorithm to the data matrix X and return the projected data matrix.
 
@@ -249,6 +257,10 @@ class FastICA:
         ArrayLike
             Data matrix projected into the independent components space of shape (N, T).
         """
+        # Change X to numpy if it is Pytorch tensor
+        if isinstance(X, torch.Tensor):
+            X = X.numpy()
+
         if method == "iterative":
             perf = self.fit_newton(X, source)
         else:
