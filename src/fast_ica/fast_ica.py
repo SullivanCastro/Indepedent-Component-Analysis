@@ -231,7 +231,7 @@ class FastICA:
             Data matrix projected into the independent components space of shape (N, T).
         """
         XT = self._preprocessing(X)
-        return (self.weights @ X.T).T
+        return (self.weights @ XT).T
 
     def fit_transform(self, X: ArrayLike, method: str = "parallel", source: None = ArrayLike) -> ArrayLike:
         """
