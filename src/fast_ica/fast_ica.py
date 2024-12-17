@@ -3,6 +3,7 @@ from numpy import exp, diag
 from numpy.linalg import eigh, pinv, norm
 from numpy.typing import ArrayLike
 from preprocessing import Preprocessing
+from src.iVAE.metrics import mean_corr_coef
 
 
 class Fast_ICA:
@@ -126,7 +127,7 @@ class Fast_ICA:
         eigvals, eigvecs = eigh(W @ W.T)
         return eigvecs @ diag(1.0 / np.sqrt(eigvals)) @ eigvecs.T @ W
 
-    def fit_newton(self, X: ArrayLike) -> None:
+    def fit_newton(self, X: ArrayLike, source: None = ArrayLike) -> None:
         """
         Fit the Fast_ICA model to the data matrix X using Newton's Method.
 
@@ -145,6 +146,8 @@ class Fast_ICA:
 
         # Initialize random weights
         self.weights = np.random.random((self._n_components, N))
+
+        perf = np.zeros(self._max_iter)
 
         for i in range(self._n_components):
             self.weights[i] = self._orthogonalisation_iterative(
@@ -175,9 +178,14 @@ class Fast_ICA:
 
                 cpt += 1
 
-            self.weights[p] = w_p
+                if source is not None:
+                    perf[p] = mean_corr_coef((w_p @ X).T, (source).T)
 
-    def fit_parallel(self, X: ArrayLike) -> None:
+            self.weights[p] = w_p
+        
+        return perf[:p]
+
+    def fit_parallel(self, X: ArrayLike, source: None = ArrayLike) -> None:
         """
         Fit the Fast_ICA model to the data matrix X using the parallel FastICA algorithm.
 
@@ -194,8 +202,9 @@ class Fast_ICA:
         X = self._preprocessing(X, update=True)
         M, _ = X.shape
         W = np.random.random((self._n_components, M))  # Shape: (n_components, M)
+        perf = np.zeros(self._max_iter)
 
-        for _ in range(self._max_iter):
+        for i in range(self._max_iter):
             W1 = np.array(
                 [self._compute_new_weights(X, w) for w in W]
             )  # Update all weights in parallel
@@ -205,8 +214,12 @@ class Fast_ICA:
             if np.max(np.abs(np.abs(np.diag(W1 @ W.T)) - 1)) < self._tol:
                 break
             W = W1
+            if source is not None:
+                print(mean_corr_coef((W @ X).T, source.T))
+                perf[i] = mean_corr_coef((W @ X).T, source.T)
 
         self.weights = W
+        return perf[:i]
 
     def transform(self, X: ArrayLike) -> ArrayLike:
         """
@@ -225,7 +238,7 @@ class Fast_ICA:
         X = self._preprocessing(X)
         return self.weights @ X
 
-    def fit_transform(self, X: ArrayLike, method: str = "parallel") -> ArrayLike:
+    def fit_transform(self, X: ArrayLike, method: str = "parallel", source: None = ArrayLike) -> ArrayLike:
         """
         Apply the Fast_ICA algorithm to the data matrix X and return the projected data matrix.
 
@@ -242,11 +255,14 @@ class Fast_ICA:
             Data matrix projected into the independent components space of shape (N, T).
         """
         if method == "iterative":
-            self.fit_newton(X)
+            perf = self.fit_newton(X, source)
         else:
-            self.fit_parallel(X)
+            perf = self.fit_parallel(X, source)
 
-        return self.transform(X)
+        if source is not None:
+            return self.transform(X), perf
+        else:
+            return self.transform(X)
 
     @property
     def W(self) -> ArrayLike:
