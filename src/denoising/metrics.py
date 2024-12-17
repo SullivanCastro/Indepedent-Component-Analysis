@@ -9,4 +9,4 @@ class Metrics:
     @staticmethod
     def psnr(image1, image2):
         mse = Metrics.mse(image1, image2)
-        return 20 * np.log10(1.0 / np.sqrt(mse))
+        return 20 * np.log10(1.0 / (np.sqrt(mse) + 1e-9))
